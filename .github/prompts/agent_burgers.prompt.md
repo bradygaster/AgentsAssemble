@@ -1,5 +1,16 @@
 # AgentBurgers Implementation Plan
 
+**CRITICAL: THIS IS YOUR INSTRUCTION SET - FOLLOW IT EXACTLY**
+
+This document serves as the complete implementation blueprint for the AgentBurgers application. When asked to implement this project, you MUST follow this plan precisely without deviation. This is not a suggestion - it is your instruction manual.
+
+**TECHNOLOGY REQUIREMENTS:**
+- .NET 9 Aspire for orchestration
+- Model Context Protocol (MCP) for AI agent communication
+- Azure OpenAI for AI capabilities
+- Blazor Server for the web UI (NO SignalR - Blazor Server cannot use SignalR for real-time updates)
+- HTTP APIs for service communication
+
 An AI-powered restaurant simulation using .NET 9 Aspire, Model Context Protocol (MCP), and Azure OpenAI. This distributed application demonstrates intelligent agent coordination in a restaurant kitchen environment.
 
 ## Project Structure Overview
@@ -18,6 +29,14 @@ The solution consists of the following projects, each with clearly defined respo
 | **PlatingAgent** | MCP Server | `Agents/PlatingAgent/` | Final assembly and presentation |
 
 Each agent must strictly follow its `Instructions.md` file. No hallucination or deviation is allowed.
+
+**IMPLEMENTATION MANDATE:**
+- You MUST implement exactly what is specified in this document
+- You MUST use the exact project structure shown below
+- You MUST use MCP servers for all AI agents
+- You MUST NOT deviate from the specified technologies
+- You MUST NOT use SignalR (Blazor Server incompatibility)
+- You MUST use event-driven services for real-time updates (service events that Blazor components subscribe to)
 
 ---
 
@@ -99,25 +118,17 @@ The AppHost project is the Aspire orchestration host that manages the entire dis
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
 
-// Add service defaults
-var serviceDefaults = builder.AddProject<Projects.AgentBurgers_ServiceDefaults>("servicedefaults");
-
 // Add MCP Agent services
-var grillAgent = builder.AddProject<Projects.GrillAgent>("grillagent")
-    .WithReference(serviceDefaults);
+var grillAgent = builder.AddProject<Projects.GrillAgent>("grillagent");
 
-var fryerAgent = builder.AddProject<Projects.FryerAgent>("fryeragent")
-    .WithReference(serviceDefaults);
+var fryerAgent = builder.AddProject<Projects.FryerAgent>("fryeragent");
 
-var dessertAgent = builder.AddProject<Projects.DessertAgent>("dessertagent")
-    .WithReference(serviceDefaults);
+var dessertAgent = builder.AddProject<Projects.DessertAgent>("dessertagent");
 
-var platingAgent = builder.AddProject<Projects.PlatingAgent>("platingagent")
-    .WithReference(serviceDefaults);
+var platingAgent = builder.AddProject<Projects.PlatingAgent>("platingagent");
 
 // Add Orchestrator service with references to all agents
 var orchestrator = builder.AddProject<Projects.Orchestrator>("orchestrator")
-    .WithReference(serviceDefaults)
     .WithReference(grillAgent)
     .WithReference(fryerAgent)
     .WithReference(dessertAgent)
@@ -125,7 +136,6 @@ var orchestrator = builder.AddProject<Projects.Orchestrator>("orchestrator")
 
 // Add Order Simulator service that calls the orchestrator
 var orderSimulator = builder.AddProject<Projects.OrderSimulator>("ordersimulator")
-    .WithReference(serviceDefaults)
     .WithReference(orchestrator);
 
 builder.Build().Run();
@@ -145,7 +155,6 @@ builder.Build().Run();
     <PackageReference Include="Aspire.Hosting.AppHost" Version="9.1.0" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\AgentBurgers.ServiceDefaults\AgentBurgers.ServiceDefaults.csproj" />
     <ProjectReference Include="..\Orchestrator\Orchestrator.csproj" />
     <ProjectReference Include="..\OrderSimulator\OrderSimulator.csproj" />
     <ProjectReference Include="..\Agents\GrillAgent\GrillAgent.csproj" />
@@ -1273,122 +1282,6 @@ public enum OrderStatus
     Failed
 }
 
-// SignalR Hub for real-time kitchen updates
-public class KitchenHub : Hub
-{
-    public async Task JoinKitchenGroup()
-    {
-        await Groups.AddToGroupAsync(Context.ConnectionId, "Kitchen");
-    }
-
-    public async Task LeaveKitchenGroup()
-    {
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, "Kitchen");
-    }
-}
-
-// Updated KitchenService with Real-time Notifications
-public class KitchenServiceWithRealTime : KitchenService
-{
-    private readonly IHubContext<KitchenHub> _hubContext;
-
-    public KitchenServiceWithRealTime(IChatClient chatClient, IHttpClientFactory httpClientFactory, IHubContext<KitchenHub> hubContext)
-        : base(chatClient, httpClientFactory)
-    {
-        _hubContext = hubContext;
-    }
-
-    public override async Task<string> ProcessOrderAsync(string order)
-    {
-        var orderId = Guid.NewGuid().ToString();
-        
-        // Create order history entry
-        var orderHistoryItem = new OrderHistoryItem
-        {
-            Id = orderId,
-            Timestamp = DateTime.Now,
-            OrderText = order,
-            Status = OrderStatus.InProgress,
-            ProgressSteps = new List<ProgressStep>
-            {
-                new() { Timestamp = DateTime.Now, Message = $"Order received: {order}" }
-            }
-        };
-        _orderHistory[orderId] = orderHistoryItem;
-
-        // Notify clients of new order
-        await _hubContext.Clients.Group("Kitchen").SendAsync("OrderStarted", orderHistoryItem);
-
-        var history = new List<ChatMessage> 
-        { 
-            ChatMessage.CreateSystemMessage(_systemPrompt),
-            ChatMessage.CreateUserMessage(order)
-        };
-
-        _conversations[orderId] = history;
-        _orderProgress[orderId] = new List<string> { $"Processing order: {order}" };
-
-        try
-        {
-            // Add progress step
-            orderHistoryItem.ProgressSteps.Add(new ProgressStep 
-            { 
-                Timestamp = DateTime.Now, 
-                Message = "Starting AI processing..." 
-            });
-
-            // Notify clients of progress
-            await _hubContext.Clients.Group("Kitchen").SendAsync("OrderProgress", orderId, "Starting AI processing...");
-
-            var result = await _chatClient.CompleteAsync(history, new ChatOptions 
-            { 
-                Tools = _allTools,
-                ToolCallBehavior = ToolCallBehavior.AutoInvoke
-            });
-
-            var response = result.Message.Text ?? "Order processed successfully.";
-            
-            // Update order history with completion
-            orderHistoryItem.Status = OrderStatus.Completed;
-            orderHistoryItem.CompletedAt = DateTime.Now;
-            orderHistoryItem.Response = response;
-            orderHistoryItem.ProgressSteps.Add(new ProgressStep 
-            { 
-                Timestamp = DateTime.Now, 
-                Message = "Order completed successfully" 
-            });
-
-            _orderProgress[orderId].Add($"Order completed: {response}");
-
-            // Notify clients of completion
-            await _hubContext.Clients.Group("Kitchen").SendAsync("OrderCompleted", orderHistoryItem);
-
-            return response;
-        }
-        catch (Exception ex)
-        {
-            var errorMessage = $"Error processing order: {ex.Message}";
-            
-            // Update order history with failure
-            orderHistoryItem.Status = OrderStatus.Failed;
-            orderHistoryItem.CompletedAt = DateTime.Now;
-            orderHistoryItem.Response = errorMessage;
-            orderHistoryItem.ProgressSteps.Add(new ProgressStep 
-            { 
-                Timestamp = DateTime.Now, 
-                Message = $"Order failed: {ex.Message}" 
-            });
-
-            _orderProgress[orderId].Add(errorMessage);
-
-            // Notify clients of failure
-            await _hubContext.Clients.Group("Kitchen").SendAsync("OrderFailed", orderHistoryItem);
-
-            return errorMessage;
-        }
-    }
-}
-
 ### Orchestrator/Pages/_Host.cshtml
 ```html
 @page "/"
@@ -1658,11 +1551,7 @@ public class KitchenServiceWithRealTime : KitchenService
 ### Orchestrator/Pages/Orders.razor
 ```razor
 @page "/orders"
-@using System.ComponentModel.DataAnnotations
-@using Microsoft.AspNetCore.SignalR.Client
 @inject KitchenService Kitchen
-@inject IJSRuntime JSRuntime
-@inject NavigationManager Navigation
 @implements IDisposable
 
 <PageTitle>Order History - AgentBurgers</PageTitle>
@@ -2948,32 +2837,429 @@ public class OrderSimulatorService : BackgroundService
 ```razor
 @page "/orders"
 @inject KitchenService Kitchen
+@implements IDisposable
 
 <PageTitle>Order History - AgentBurgers</PageTitle>
 
 <div class="container-fluid">
     <div class="row">
-        <div class="col-12">
+        <!-- Order History Panel -->
+        <div class="col-lg-8">
             <div class="card">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h3>📋 Order History</h3>
+                    <div>
+                        <button class="btn btn-outline-secondary btn-sm me-2" @onclick="RefreshOrders">
+                            <i class="fas fa-refresh"></i> Refresh
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" @onclick="ClearHistory">
+                            <i class="fas fa-trash"></i> Clear History
+                        </button>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <p class="text-muted">Order history and tracking functionality would be implemented here.</p>
-                    <div class="alert alert-info">
-                        <h5>Future Features:</h5>
-                        <ul class="mb-0">
-                            <li>Real-time order tracking</li>
-                            <li>Order status updates</li>
-                            <li>Kitchen performance metrics</li>
-                            <li>Order completion times</li>
-                        </ul>
+                    @if (orderHistory.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Order ID</th>
+                                        <th>Time</th>
+                                        <th>Order Details</th>
+                                        <th>Status</th>
+                                        <th>Duration</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var order in orderHistory.OrderByDescending(o => o.Timestamp))
+                                    {
+                                        <tr class="@GetRowClass(order.Status)">
+                                            <td>
+                                                <small class="font-monospace">@order.Id[..8]...</small>
+                                            </td>
+                                            <td>
+                                                <small>@order.Timestamp.ToString("HH:mm:ss")</small>
+                                            </td>
+                                            <td>
+                                                <div class="text-truncate" style="max-width: 200px;" title="@order.OrderText">
+                                                    @order.OrderText
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge @GetStatusBadgeClass(order.Status)">
+                                                    @GetStatusIcon(order.Status) @order.Status
+                                                </span>
+                                            </td>
+                                            <td>
+                                                @if (order.CompletedAt.HasValue)
+                                                {
+                                                    <small>@FormatDuration(order.CompletedAt.Value - order.Timestamp)</small>
+                                                }
+                                                else
+                                                {
+                                                    <small class="text-muted">In progress...</small>
+                                                }
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-sm btn-outline-primary" @onclick="() => ViewOrderDetails(order.Id)">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-5">
+                            <i class="fas fa-clipboard-list fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">No orders yet</h5>
+                            <p class="text-muted">Order history will appear here as orders are processed.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Kitchen Metrics Panel -->
+        <div class="col-lg-4">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <h5>📊 Kitchen Performance</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="metric-card">
+                                <h3 class="text-success">@completedOrders</h3>
+                                <small class="text-muted">Completed</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="metric-card">
+                                <h3 class="text-warning">@inProgressOrders</h3>
+                                <small class="text-muted">In Progress</small>
+                            </div>
+                        </div>
                     </div>
+                    <hr>
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="metric-card">
+                                <h4 class="text-primary">@failedOrders</h4>
+                                <small class="text-muted">Failed</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="metric-card">
+                                <h4 class="text-info">@averageProcessingTime</h4>
+                                <small class="text-muted">Avg Time</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5>🔄 Real-time Updates</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <span class="badge bg-success me-2">
+                            🟢 Event-Driven Updates
+                        </span>
+                        <small class="text-muted">Service Events Active</small>
+                    </div>
+                    <hr>
+                    <small class="text-muted">
+                        Last updated: @lastRefreshTime.ToString("HH:mm:ss")
+                    </small>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Order Details Modal -->
+    @if (selectedOrder != null)
+    {
+        <div class="modal show d-block" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Order Details - @selectedOrder.Id[..8]</h5>
+                        <button type="button" class="btn-close" @onclick="CloseOrderDetails"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Order Information</h6>
+                                <table class="table table-sm">
+                                    <tr>
+                                        <td><strong>Order ID:</strong></td>
+                                        <td><span class="font-monospace">@selectedOrder.Id</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Submitted:</strong></td>
+                                        <td>@selectedOrder.Timestamp.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Status:</strong></td>
+                                        <td><span class="badge @GetStatusBadgeClass(selectedOrder.Status)">@selectedOrder.Status</span></td>
+                                    </tr>
+                                    @if (selectedOrder.CompletedAt.HasValue)
+                                    {
+                                        <tr>
+                                            <td><strong>Completed:</strong></td>
+                                            <td>@selectedOrder.CompletedAt.Value.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Duration:</strong></td>
+                                            <td>@FormatDuration(selectedOrder.CompletedAt.Value - selectedOrder.Timestamp)</td>
+                                        </tr>
+                                    }
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Order Content</h6>
+                                <div class="border rounded p-3 bg-light">
+                                    <strong>Customer Request:</strong><br>
+                                    <em>"@selectedOrder.OrderText"</em>
+                                </div>
+                                @if (!string.IsNullOrEmpty(selectedOrder.Response))
+                                {
+                                    <div class="border rounded p-3 bg-light mt-3">
+                                        <strong>Kitchen Response:</strong><br>
+                                        @selectedOrder.Response
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                        
+                        @if (selectedOrder.ProgressSteps.Any())
+                        {
+                            <hr>
+                            <h6>Processing Steps</h6>
+                            <div class="timeline">
+                                @foreach (var step in selectedOrder.ProgressSteps)
+                                {
+                                    <div class="timeline-item">
+                                        <small class="text-muted">@step.Timestamp.ToString("HH:mm:ss")</small>
+                                        <div class="ms-3">@step.Message</div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CloseOrderDetails">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-backdrop show"></div>
+    }
 </div>
+
+<style>
+.metric-card {
+    padding: 0.5rem;
+}
+
+.timeline {
+    position: relative;
+    padding-left: 1rem;
+}
+
+.timeline-item {
+    position: relative;
+    padding-bottom: 1rem;
+    border-left: 2px solid #dee2e6;
+    padding-left: 1rem;
+    margin-left: 0.5rem;
+}
+
+.timeline-item:before {
+    content: '';
+    position: absolute;
+    left: -5px;
+    top: 5px;
+    width: 8px;
+    height: 8px;
+    background: #007bff;
+    border-radius: 50%;
+}
+
+.timeline-item:last-child {
+    border-left: none;
+}
+</style>
+
+@code {
+    private List<OrderHistoryItem> orderHistory = new();
+    private OrderHistoryItem? selectedOrder = null;
+    private DateTime lastRefreshTime = DateTime.Now;
+
+    private int completedOrders => orderHistory.Count(o => o.Status == OrderStatus.Completed);
+    private int inProgressOrders => orderHistory.Count(o => o.Status == OrderStatus.InProgress);
+    private int failedOrders => orderHistory.Count(o => o.Status == OrderStatus.Failed);
+    private string averageProcessingTime => GetAverageProcessingTime();
+
+    protected override Task OnInitializedAsync()
+    {
+        // Subscribe to kitchen service events
+        Kitchen.OrderStarted += OnOrderStarted;
+        Kitchen.OrderCompleted += OnOrderCompleted;
+        Kitchen.OrderFailed += OnOrderFailed;
+        Kitchen.OrderProgressUpdated += OnOrderProgressUpdated;
+
+        RefreshOrders();
+        return Task.CompletedTask;
+    }
+
+    private void OnOrderStarted(object? sender, OrderHistoryItem order)
+    {
+        InvokeAsync(() =>
+        {
+            // Add to the beginning of the list for newest first
+            orderHistory.Insert(0, order);
+            lastRefreshTime = DateTime.Now;
+            StateHasChanged();
+        });
+    }
+
+    private void OnOrderCompleted(object? sender, OrderHistoryItem order)
+    {
+        InvokeAsync(() =>
+        {
+            var existingOrder = orderHistory.FirstOrDefault(o => o.Id == order.Id);
+            if (existingOrder != null)
+            {
+                var index = orderHistory.IndexOf(existingOrder);
+                orderHistory[index] = order;
+            }
+            lastRefreshTime = DateTime.Now;
+            StateHasChanged();
+        });
+    }
+
+    private void OnOrderFailed(object? sender, OrderHistoryItem order)
+    {
+        InvokeAsync(() =>
+        {
+            var existingOrder = orderHistory.FirstOrDefault(o => o.Id == order.Id);
+            if (existingOrder != null)
+            {
+                var index = orderHistory.IndexOf(existingOrder);
+                orderHistory[index] = order;
+            }
+            lastRefreshTime = DateTime.Now;
+            StateHasChanged();
+        });
+    }
+
+    private void OnOrderProgressUpdated(object? sender, (string OrderId, string Message) update)
+    {
+        InvokeAsync(() =>
+        {
+            var order = orderHistory.FirstOrDefault(o => o.Id == update.OrderId);
+            if (order != null)
+            {
+                order.ProgressSteps.Add(new ProgressStep 
+                { 
+                    Timestamp = DateTime.Now, 
+                    Message = update.Message 
+                });
+                lastRefreshTime = DateTime.Now;
+                StateHasChanged();
+            }
+        });
+    }
+
+    private void RefreshOrders()
+    {
+        orderHistory = Kitchen.GetOrderHistory();
+        lastRefreshTime = DateTime.Now;
+    }
+
+    private void ClearHistory()
+    {
+        Kitchen.ClearOrderHistory();
+        orderHistory.Clear();
+    }
+
+    private void ViewOrderDetails(string orderId)
+    {
+        selectedOrder = orderHistory.FirstOrDefault(o => o.Id == orderId);
+    }
+
+    private void CloseOrderDetails()
+    {
+        selectedOrder = null;
+    }
+
+    private string GetRowClass(OrderStatus status) => status switch
+    {
+        OrderStatus.Completed => "table-success",
+        OrderStatus.Failed => "table-danger",
+        OrderStatus.InProgress => "table-warning",
+        _ => ""
+    };
+
+    private string GetStatusBadgeClass(OrderStatus status) => status switch
+    {
+        OrderStatus.Completed => "bg-success",
+        OrderStatus.Failed => "bg-danger",
+        OrderStatus.InProgress => "bg-warning text-dark",
+        _ => "bg-secondary"
+    };
+
+    private string GetStatusIcon(OrderStatus status) => status switch
+    {
+        OrderStatus.Completed => "✅",
+        OrderStatus.Failed => "❌",
+        OrderStatus.InProgress => "⏳",
+        _ => "❓"
+    };
+
+    private string FormatDuration(TimeSpan duration)
+    {
+        if (duration.TotalMinutes < 1)
+            return $"{duration.Seconds}s";
+        else if (duration.TotalHours < 1)
+            return $"{duration.Minutes}m {duration.Seconds}s";
+        else
+            return $"{duration.Hours}h {duration.Minutes}m";
+    }
+
+    private string GetAverageProcessingTime()
+    {
+        var completedOrdersWithTime = orderHistory
+            .Where(o => o.Status == OrderStatus.Completed && o.CompletedAt.HasValue)
+            .ToList();
+
+        if (!completedOrdersWithTime.Any())
+            return "N/A";
+
+        var avgTicks = completedOrdersWithTime
+            .Average(o => (o.CompletedAt!.Value - o.Timestamp).Ticks);
+
+        return FormatDuration(new TimeSpan((long)avgTicks));
+    }
+
+    public void Dispose()
+    {
+        // Unsubscribe from events to prevent memory leaks
+        Kitchen.OrderStarted -= OnOrderStarted;
+        Kitchen.OrderCompleted -= OnOrderCompleted;
+        Kitchen.OrderFailed -= OnOrderFailed;
+        Kitchen.OrderProgressUpdated -= OnOrderProgressUpdated;
+    }
+}
 ```
 
 ### wwwroot/css/app.css
@@ -3856,49 +4142,68 @@ Never let agents reason. That is the orchestrator's job. The agents are purely f
 
 ---
 
-## Real-Time Order History Implementation
+## 13. Implementation Summary
 
-### 🔄 **SignalR Integration for Live Updates**
+### Event-Driven Real-Time Updates
 
-The implementation includes comprehensive real-time functionality so the order history updates instantly as the OrderSimulator runs:
+**CRITICAL: This implementation uses event-driven service architecture for real-time UI updates instead of SignalR (which is incompatible with Blazor Server).**
 
-#### **Key Components Added:**
+The KitchenService exposes the following events that Blazor components can subscribe to:
 
-1. **KitchenHub (SignalR Hub)**
-   - Manages real-time connections to the Orders page
-   - Groups clients for efficient broadcasting
-   - Handles connection lifecycle events
+```csharp
+public event EventHandler<OrderHistoryItem>? OrderStarted;
+public event EventHandler<OrderHistoryItem>? OrderCompleted; 
+public event EventHandler<OrderHistoryItem>? OrderFailed;
+public event EventHandler<(string OrderId, string Message)>? OrderProgressUpdated;
+```
 
-2. **Enhanced KitchenService with Real-Time Notifications**
-   - Broadcasts order events to connected clients
-   - Tracks order lifecycle with timestamped progress steps
-   - Sends immediate notifications for status changes
+**Blazor Components** subscribe to these events in their `OnInitializedAsync()` method:
 
-3. **Updated Orders.razor with SignalR Client**
-   - Establishes SignalR connection on page load
-   - Listens for real-time order events
-   - Updates UI instantly without page refresh
-   - Shows connection status indicator
+```csharp
+Kitchen.OrderStarted += OnOrderStarted;
+Kitchen.OrderCompleted += OnOrderCompleted;
+Kitchen.OrderFailed += OnOrderFailed;
+Kitchen.OrderProgressUpdated += OnOrderProgressUpdated;
+```
 
-#### **Real-Time Events:**
+**Event Handlers** call `InvokeAsync()` and `StateHasChanged()` to update the UI reactively:
 
-- **OrderStarted**: New order appears immediately in the history table
-- **OrderProgress**: Live updates during AI processing steps
-- **OrderCompleted**: Instant status change to completed with final response
-- **OrderFailed**: Immediate error notification and status update
+```csharp
+private void OnOrderStarted(object? sender, OrderHistoryItem order)
+{
+    InvokeAsync(() =>
+    {
+        orderHistory.Insert(0, order);
+        StateHasChanged();
+    });
+}
+```
 
-#### **User Experience:**
+**Components implement `IDisposable`** to unsubscribe from events and prevent memory leaks:
+
+```csharp
+public void Dispose()
+{
+    Kitchen.OrderStarted -= OnOrderStarted;
+    Kitchen.OrderCompleted -= OnOrderCompleted;
+    Kitchen.OrderFailed -= OnOrderFailed;
+    Kitchen.OrderProgressUpdated -= OnOrderProgressUpdated;
+}
+```
+
+This approach provides:
+- ✅ Real-time UI updates without SignalR
+- ✅ Perfect compatibility with Blazor Server
+- ✅ Clean separation of concerns
+- ✅ Memory leak prevention through proper disposal
+- ✅ Reactive, event-driven architecture
+
+### User Experience:
 
 - **Zero-Latency Updates**: Orders appear within milliseconds of submission
-- **Live Status Indicators**: Visual feedback showing order progression
-- **Connection Monitoring**: Real-time status showing SignalR health
-- **Graceful Fallback**: Auto-refresh continues if SignalR disconnects
-
-#### **Required Updates:**
-
-1. **Program.cs**: Add `builder.Services.AddSignalR()` and `app.MapHub<KitchenHub>("/kitchenhub")`
-2. **Orchestrator.csproj**: Add `Microsoft.AspNetCore.SignalR` package reference
-3. **Service Registration**: Use `KitchenServiceWithRealTime` instead of base `KitchenService`
+- **Live Status Indicators**: Visual feedback showing order progression  
+- **Event-Driven Architecture**: Service events automatically update UI
+- **Clean Component Lifecycle**: Proper subscription/unsubscription management
 
 This ensures that as the OrderSimulator continuously generates orders, users watching the Orders page see immediate, real-time updates without any manual intervention required.
 

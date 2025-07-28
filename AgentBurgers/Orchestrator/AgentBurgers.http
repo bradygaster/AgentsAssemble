@@ -1,0 +1,266 @@
+### AgentBurgers API Test Scenarios
+### This file contains comprehensive test scenarios for the AgentBurgers kitchen API
+### Use with VS Code REST Client extension or similar HTTP testing tools
+
+# Variables - Update these to match your environment
+@baseUrl = https://localhost:7042
+@contentType = application/json
+
+### Health Check
+GET {{baseUrl}}/health
+
+### Alive Check  
+GET {{baseUrl}}/alive
+
+### ===== BASIC ORDERS =====
+
+### Simple Cheeseburger
+POST {{baseUrl}}/api/order
+Content-Type: {{contentType}}
+
+{
+  "order": "I'd like a cheeseburger with fries and a chocolate shake"
+}
+
+### Cheeseburger with Fries
+POST {{baseUrl}}/api/order
+Content-Type: {{contentType}}
+
+{
+  "order": "Can I get a bacon cheeseburger with waffle fries?"
+}
+
+### Basic Combo Meal
+POST {{baseUrl}}/api/order
+Content-Type: {{contentType}}
+
+{
+  "order": "Double cheeseburger, standard fries, and a vanilla shake"
+}
+
+### ===== COMPLEX ORDERS =====
+
+### Bacon Cheeseburger Deluxe
+POST {{baseUrl}}/api/order
+Content-Type: {{contentType}}
+
+{
+  "order": "I want a bacon cheeseburger with both buns toasted, waffle fries with extra salt, and a chocolate shake with whipped cream"
+}
+
+### Double Everything
+POST {{baseUrl}}/api/order
+Content-Type: {{contentType}}
+
+{
+  "order": "Give me two bacon cheeseburgers, one with top bun toasted only, one with bottom bun toasted only, two orders of different fries, and two different shakes"
+}
+
+### Gourmet Special
+POST {{baseUrl}}/api/order
+Content-Type: {{contentType}}
+
+{
+  "order": "I need a double bacon cheeseburger with perfectly toasted buns, crispy waffle fries with light salt, a vanilla shake with whipped cream, and a fudge sundae for dessert"
+}
+
+### ===== DESSERT FOCUSED =====
+
+### Just Desserts
+POST {{baseUrl}}/api/order
+Content-Type: {{contentType}}
+
+{
+  "order": "I only want desserts - a chocolate shake, a vanilla shake, a fudge sundae, and a caramel sundae, all with whipped cream"
+}
+
+### Shake Only
+POST {{baseUrl}}/api/order
+Content-Type: {{contentType}}
+
+{
+  "order": "Just a strawberry shake with extra whipped cream, please"
+}
+
+### Sundae Combo
+POST {{baseUrl}}/api/order
+Content-Type: {{contentType}}
+
+{
+  "order": "I'll have one of each sundae - fudge, caramel, and cherry - all with whipped cream"
+}
+
+### ===== FRIES VARIATIONS =====
+
+### Fries Sampler
+POST {{baseUrl}}/api/order
+Content-Type: {{contentType}}
+
+{
+  "order": "I want to try all your fries - standard, waffle, and sweet potato fries, each with different salt levels"
+}
+
+### Just Fries
+POST {{baseUrl}}/api/order
+Content-Type: {{contentType}}
+
+{
+  "order": "Three orders of waffle fries, all with different salt amounts - one light, one normal, one extra salty"
+}
+
+### ===== SPECIFIC INSTRUCTIONS =====
+
+### Detailed Burger Order
+POST {{baseUrl}}/api/order
+Content-Type: {{contentType}}
+
+{
+  "order": "I need a bacon cheeseburger where the patty is cooked well-done, the cheese is properly melted, the bacon is crispy, and only the bottom bun is toasted golden brown"
+}
+
+### Precise Fry Order
+POST {{baseUrl}}/api/order
+Content-Type: {{contentType}}
+
+{
+  "order": "Sweet potato fries, fried until crispy, with just a light dusting of salt, and bagged for takeout"
+}
+
+### Custom Shake
+POST {{baseUrl}}/api/order
+Content-Type: {{contentType}}
+
+{
+  "order": "A thick chocolate shake blended perfectly with exactly three dollops of whipped cream on top"
+}
+
+### ===== LARGE ORDERS =====
+
+### Family Feast
+POST {{baseUrl}}/api/order
+Content-Type: {{contentType}}
+
+{
+  "order": "Family order: 4 bacon cheeseburgers, 2 regular cheeseburgers, 3 orders of waffle fries, 2 orders of standard fries, 3 chocolate shakes, 2 vanilla shakes, and 1 fudge sundae to share"
+}
+
+### Party Order
+POST {{baseUrl}}/api/order
+Content-Type: {{contentType}}
+
+{
+  "order": "Big party order: 6 bacon cheeseburgers with different bun toasting preferences, 4 orders of fries (mix of types), 5 shakes (variety of flavors), and 3 sundaes for the table"
+}
+
+### ===== EDGE CASES =====
+
+### Minimal Order
+POST {{baseUrl}}/api/order
+Content-Type: {{contentType}}
+
+{
+  "order": "Just a burger"
+}
+
+### Casual Language
+POST {{baseUrl}}/api/order
+Content-Type: {{contentType}}
+
+{
+  "order": "Hey, can I get some food? Maybe a burger with cheese and some of those potato things, plus something sweet to drink?"
+}
+
+### Empty Order (Should handle gracefully)
+POST {{baseUrl}}/api/order
+Content-Type: {{contentType}}
+
+{
+  "order": ""
+}
+
+### Very Long Order
+POST {{baseUrl}}/api/order
+Content-Type: {{contentType}}
+
+{
+  "order": "I need a very specific order: a bacon cheeseburger where the patty is cooked to perfection, the cheese is melted to the right consistency, the bacon is crispy but not burnt, the bottom bun is toasted golden brown, the top bun is just warmed, served with waffle fries that are crispy outside and fluffy inside with the perfect amount of salt, a chocolate shake that's thick but not too thick, and a fudge sundae with hot fudge that's warm but not scalding, all prepared with care and plated beautifully for dine-in service"
+}
+
+### ===== AMBIGUOUS ORDERS (Test AI Understanding) =====
+
+### Ambiguous Request
+POST {{baseUrl}}/api/order
+Content-Type: {{contentType}}
+
+{
+  "order": "I want some food, you know, the good stuff with all the fixings"
+}
+
+### Vague Dessert Request
+POST {{baseUrl}}/api/order
+Content-Type: {{contentType}}
+
+{
+  "order": "Something sweet and cold, but not too sweet, you know what I mean?"
+}
+
+### Mixed Request
+POST {{baseUrl}}/api/order
+Content-Type: {{contentType}}
+
+{
+  "order": "Give me whatever the chef recommends, but make it good and make sure there's something for everyone"
+}
+
+### ===== STRESS TEST ORDERS =====
+
+### Kitchen Chaos 1
+POST {{baseUrl}}/api/order
+Content-Type: {{contentType}}
+
+{
+  "order": "URGENT! I need 6 bacon cheeseburgers, 3 with only top buns toasted, 2 with both buns toasted, 1 with no bun toasting, 4 waffle fries, 3 standard fries, 2 sweet potato fries, all salted differently, 3 chocolate shakes, 2 vanilla shakes, 1 strawberry shake, and 2 fudge sundaes with extra whipped cream, everything for takeout!"
+}
+
+### Kitchen Chaos 2
+POST {{baseUrl}}/api/order
+Content-Type: {{contentType}}
+
+{
+  "order": "Kitchen nightmare order: 8 different burgers - 2 plain patties no cheese, 3 single cheese, 2 double cheese with bacon, 1 triple cheese with double bacon, toast every single bun differently, fry 5 batches of different fries, make every shake flavor you have, create 3 different sundaes, and I want half for dine-in, quarter for tray service, quarter bagged!"
+}
+
+### Multi-Station Coordination
+POST {{baseUrl}}/api/order
+Content-Type: {{contentType}}
+
+{
+  "order": "Every station working: Start 5 patties cooking immediately, begin melting cheese on 4 of them, get bacon going for 3 burgers, toast 8 bun halves in different combinations, start 3 different fry batches at staggered times, begin 4 shakes simultaneously, prep 2 sundaes, add whipped cream to everything possible!"
+}
+
+### ===== CONCURRENT TESTING =====
+### Run these simultaneously to test concurrent processing
+
+### Concurrent Order 1
+POST {{baseUrl}}/api/order
+Content-Type: {{contentType}}
+
+{
+  "order": "Rush order 1: Bacon cheeseburger with waffle fries and chocolate shake"
+}
+
+### Concurrent Order 2  
+POST {{baseUrl}}/api/order
+Content-Type: {{contentType}}
+
+{
+  "order": "Rush order 2: Double cheeseburger with sweet potato fries and vanilla shake"
+}
+
+### Concurrent Order 3
+POST {{baseUrl}}/api/order
+Content-Type: {{contentType}}
+
+{
+  "order": "Rush order 3: Two regular burgers with standard fries and a fudge sundae"
+}
