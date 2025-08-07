@@ -35,8 +35,6 @@ public class KitchenManager
 
     try
     {
-      await Task.Delay(1000); // Simulate processing time
-      
       var response = await _orderProcessor.ProcessOrderAsync(order);
 
       // Update order as completed
