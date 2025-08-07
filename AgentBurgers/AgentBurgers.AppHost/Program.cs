@@ -21,8 +21,8 @@ var orchestrator = builder.AddProject<Projects.Orchestrator>("orchestrator")
     .WithReference(platingAgent);
 
 // Add Order Simulator service that calls the orchestrator
-var orderSimulator = builder.AddProject<Projects.OrderSimulator>("ordersimulator")
-    .WaitFor(orchestrator)
-    .WithReference(orchestrator);
+// var orderSimulator = builder.AddProject<Projects.OrderSimulator>("ordersimulator")
+//     .WaitFor(orchestrator)
+//     .WithReference(orchestrator);
 
 builder.Build().Run();
