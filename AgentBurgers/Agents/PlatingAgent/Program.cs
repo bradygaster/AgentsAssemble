@@ -1,3 +1,5 @@
+using PlatingAgent;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
@@ -28,8 +30,3 @@ app.MapPost("/tools/package-takeout", (PackageTakeoutRequest request) =>
 app.MapGet("/", () => "🍽️ Plating Agent - Ready to perfectly present your meals!");
 
 app.Run();
-
-// Request models
-public record AssembleBurgerRequest(string Components);
-public record PlateMealRequest(string Service, string Presentation);
-public record PackageTakeoutRequest(string Items, string Accessories);

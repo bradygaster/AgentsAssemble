@@ -1,3 +1,5 @@
+using DessertAgent;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
@@ -28,8 +30,3 @@ app.MapPost("/tools/add-whipped-cream", (AddWhippedCreamRequest request) =>
 app.MapGet("/", () => "🍦 Dessert Agent - Ready to make your sweet treats!");
 
 app.Run();
-
-// Request models
-public record MakeShakeRequest(string Size, string Flavor, string Toppings);
-public record MakeSundaeRequest(string Size, string Flavor, string Toppings);
-public record AddWhippedCreamRequest(string Amount);

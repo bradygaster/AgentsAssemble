@@ -1,3 +1,5 @@
+using FryerAgent;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
@@ -28,8 +30,3 @@ app.MapPost("/tools/fry-sweet-potato", (FrySweetPotatoRequest request) =>
 app.MapGet("/", () => "🍟 Fryer Agent - Ready to fry all your favorites!");
 
 app.Run();
-
-// Request models
-public record FryStandardRequest(string Portion, int Duration);
-public record FryWaffleRequest(string Portion, int Duration);
-public record FrySweetPotatoRequest(string Portion, int Duration);

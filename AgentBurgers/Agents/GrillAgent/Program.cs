@@ -1,3 +1,5 @@
+using GrillAgent;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
@@ -34,9 +36,3 @@ app.MapPost("/tools/toast-bun", (ToastBunRequest request) =>
 app.MapGet("/", () => "🔥 Grill Agent - Ready to handle all your grilling needs!");
 
 app.Run();
-
-// Request models
-public record CookPattyRequest(string PattyType, string Doneness);
-public record MeltCheeseRequest(string CheeseType);
-public record AddBaconRequest(int BaconStrips);
-public record ToastBunRequest(string BunType, string ToastLevel);
