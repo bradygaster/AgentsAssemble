@@ -2,26 +2,25 @@ using ModelContextProtocol.Client;
 
 public static class Extensions
 {
-    public static IServiceCollection AddMcpClient(this IServiceCollection services)
+    public static IServiceCollection AddMcpClient(this IServiceCollection services, string serviceName, string clientName)
     {
-        services.AddTransient<IMcpClient>(sp =>
+        services.AddKeyedTransient<IMcpClient>(serviceName, (sp, key) =>
         {
             var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
 
             McpClientOptions mcpClientOptions = new()
             {
                 ClientInfo = new (){
-                    Name = "AspNetCoreSseClient",
+                    Name = clientName,
                     Version = "1.0.0"
                 }
             };
 
-            var serviceName = "mcpserver";
             var name = $"services__{serviceName}__http__0";
             var url = Environment.GetEnvironmentVariable(name) + "/sse";
 
             var clientTransport = new SseClientTransport(new (){
-                Name = "AspNetCoreSse",
+                Name = clientName,
                 Endpoint = new Uri(url)
             },loggerFactory);
 
@@ -32,5 +31,16 @@ public static class Extensions
         });
 
         return services;        
+    }
+
+    public static IServiceCollection AddMcpClients(this IServiceCollection services)
+    {
+        // Add MCP clients for each agent
+        services.AddMcpClient("grillagent", "GrillAgentClient");
+        services.AddMcpClient("fryeragent", "FryerAgentClient");
+        services.AddMcpClient("dessertagent", "DessertAgentClient");
+        services.AddMcpClient("platingagent", "PlatingAgentClient");
+
+        return services;
     }
 }

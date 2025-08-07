@@ -8,29 +8,11 @@ builder.AddServiceDefaults();
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 
-// Configure HTTP clients for MCP services using service discovery
-builder.Services.AddHttpClient("grillagent", client =>
-{
-    client.BaseAddress = new Uri("http://grillagent");
-});
-
-builder.Services.AddHttpClient("fryeragent", client =>
-{
-    client.BaseAddress = new Uri("http://fryeragent");
-});
-
-builder.Services.AddHttpClient("dessertagent", client =>
-{
-    client.BaseAddress = new Uri("http://dessertagent");
-});
-
-builder.Services.AddHttpClient("platingagent", client =>
-{
-    client.BaseAddress = new Uri("http://platingagent");
-});
+// Configure MCP clients for agent services using service discovery
+builder.Services.AddMcpClients();
 
 // Register order processing services
-builder.Services.AddScoped<IOrderProcessor, MockOrderProcessor>();
+builder.Services.AddSingleton<IOrderProcessor, McpOrderProcessor>();
 
 // Register the Kitchen Service
 builder.Services.AddSingleton<KitchenManager>();

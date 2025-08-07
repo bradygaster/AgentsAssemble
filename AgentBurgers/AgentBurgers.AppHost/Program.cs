@@ -16,6 +16,10 @@ var platingAgent = builder.AddProject<Projects.PlatingAgent>("platingagent");
 
 // Add Orchestrator service with references to all agents
 var orchestrator = builder.AddProject<Projects.Orchestrator>("orchestrator")
+    .WaitFor(grillAgent)
+    .WaitFor(fryerAgent)
+    .WaitFor(dessertAgent)
+    .WaitFor(platingAgent)
     .WithReference(grillAgent)
     .WithReference(fryerAgent)
     .WithReference(dessertAgent)
@@ -23,6 +27,7 @@ var orchestrator = builder.AddProject<Projects.Orchestrator>("orchestrator")
 
 // Add Order Simulator service that calls the orchestrator
 var orderSimulator = builder.AddProject<Projects.OrderSimulator>("ordersimulator")
+    .WaitFor(orchestrator)
     .WithReference(orchestrator);
 
 builder.Build().Run();
