@@ -16,10 +16,12 @@ var platingAgent = builder.AddProject<Projects.PlatingAgent>("platingagent");
 
 // Add Orchestrator service with references to all agents
 var orchestrator = builder.AddProject<Projects.Orchestrator>("orchestrator")
+    .WaitFor(localFoundry)
     .WaitFor(grillAgent)
     .WaitFor(fryerAgent)
     .WaitFor(dessertAgent)
     .WaitFor(platingAgent)
+    .WithReference(localFoundry)
     .WithReference(grillAgent)
     .WithReference(fryerAgent)
     .WithReference(dessertAgent)
