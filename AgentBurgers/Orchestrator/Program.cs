@@ -29,6 +29,9 @@ builder.Services.AddHttpClient("platingagent", client =>
     client.BaseAddress = new Uri("http://platingagent");
 });
 
+// Register order processing services
+builder.Services.AddScoped<IOrderProcessor, MockOrderProcessor>();
+
 // Register the Kitchen Service
 builder.Services.AddSingleton<KitchenManager>();
 

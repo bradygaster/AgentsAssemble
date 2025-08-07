@@ -119,3 +119,4 @@ applyTo: '**/*.cs,**/*.csproj'
 - Strive to maintain a one-class-per-file rule in all `.cs` files.
 - Only include multiple types in a single `.cs` file when it is an interface and that interface's models.
 - Do not add triple-slash comments (`///`) to the code unless specifically requested.
+- When creating new classes, do not include triple-slash comments or verbose commentary within the code. 
