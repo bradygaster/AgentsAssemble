@@ -12,7 +12,7 @@ builder.Services.AddServerSideBlazor();
 builder.Services.AddMcpClients();
 
 // Register order processing services
-builder.Services.AddScoped<IOrderProcessor, McpOrderProcessor>();
+builder.Services.AddSingleton<IOrderProcessor, MockOrderProcessor>();
 
 // Register the Kitchen Service
 builder.Services.AddSingleton<KitchenManager>();
