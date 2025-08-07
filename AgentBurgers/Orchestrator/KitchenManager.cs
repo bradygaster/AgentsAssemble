@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Orchestrator;
 
@@ -6,15 +7,15 @@ public class KitchenManager
 {
   private readonly ConcurrentDictionary<string, List<string>> _orderProgress = new();
   private readonly ConcurrentDictionary<string, OrderHistoryItem> _orderHistory = new();
-  private readonly IOrderProcessor _orderProcessor;
+  private readonly IServiceProvider _serviceProvider;
   public event EventHandler<OrderHistoryItem>? OrderStarted;
   public event EventHandler<OrderHistoryItem>? OrderCompleted;
   public event EventHandler<OrderHistoryItem>? OrderFailed;
   public event EventHandler<(string OrderId, string Message)>? OrderProgressUpdated;
 
-  public KitchenManager(IOrderProcessor orderProcessor)
+  public KitchenManager(IServiceProvider serviceProvider)
   {
-    _orderProcessor = orderProcessor;
+    _serviceProvider = serviceProvider;
   }
 
   public async Task<string> ProcessOrderAsync(string order)
@@ -35,7 +36,9 @@ public class KitchenManager
 
     try
     {
-      var response = await _orderProcessor.ProcessOrderAsync(order);
+      using var scope = _serviceProvider.CreateScope();
+      var orderProcessor = scope.ServiceProvider.GetRequiredService<IOrderProcessor>();
+      var response = await orderProcessor.ProcessOrderAsync(order);
 
       // Update order as completed
       orderItem.Status = OrderStatus.Completed;
@@ -64,7 +67,9 @@ public class KitchenManager
 
     yield return "Order received, processing...";
 
-    var response = await _orderProcessor.ProcessOrderAsync(order);
+    using var scope = _serviceProvider.CreateScope();
+    var orderProcessor = scope.ServiceProvider.GetRequiredService<IOrderProcessor>();
+    var response = await orderProcessor.ProcessOrderAsync(order);
     var words = response.Split(' ');
     
     foreach (var word in words)
