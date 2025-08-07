@@ -3,9 +3,6 @@ using System.Text;
 
 namespace Orchestrator;
 
-/// <summary>
-/// Manages kitchen operations and order processing
-/// </summary>
 public class KitchenManager
 {
   private readonly ConcurrentDictionary<string, List<string>> _orderProgress = new();

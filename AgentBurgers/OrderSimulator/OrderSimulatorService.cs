@@ -3,9 +3,6 @@ using System.Text.Json;
 
 namespace OrderSimulator;
 
-/// <summary>
-/// Background service that simulates random orders
-/// </summary>
 public class OrderSimulatorService : BackgroundService
 {
   private readonly IHttpClientFactory _httpClientFactory;

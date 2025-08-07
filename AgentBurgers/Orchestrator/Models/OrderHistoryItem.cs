@@ -1,8 +1,5 @@
 namespace Orchestrator;
 
-/// <summary>
-/// Represents a historical order item with tracking information
-/// </summary>
 public class OrderHistoryItem
 {
   public string Id { get; set; } = string.Empty;

@@ -117,4 +117,5 @@ applyTo: '**/*.cs,**/*.csproj'
 
 - Make sure `.csproj` files are indented 2 spaces each line.
 - Strive to maintain a one-class-per-file rule in all `.cs` files.
-- Only include multiple types in a single `.cs` file when it is an interface and that interface's models. 
+- Only include multiple types in a single `.cs` file when it is an interface and that interface's models.
+- Do not add triple-slash comments (`///`) to the code unless specifically requested.
