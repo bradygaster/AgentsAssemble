@@ -43,8 +43,7 @@ public class OrderSimulatorService : BackgroundService
           await SubmitOrderAsync(order, orderType);
         }
 
-        // Wait 1 second between orders
-        await Task.Delay(1000, stoppingToken);
+        await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
       }
       catch (Exception ex) when (!stoppingToken.IsCancellationRequested)
       {
