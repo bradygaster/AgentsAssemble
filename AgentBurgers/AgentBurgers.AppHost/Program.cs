@@ -1,5 +1,10 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
+// Add Azure AI Foundry services
+var localFoundry = builder.AddAzureAIFoundry("foundry")
+                          .RunAsFoundryLocal()
+                          .AddDeployment("chat", "phi-4", "1", "Microsoft");
+
 // Add MCP Agent services
 var grillAgent = builder.AddProject<Projects.GrillAgent>("grillagent");
 
