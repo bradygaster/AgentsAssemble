@@ -1,9 +1,6 @@
-using Microsoft.Extensions.AI;
-using Microsoft.Extensions.DependencyInjection;
 using ModelContextProtocol.Client;
 using Orchestrator.Models;
 using System.Text;
-using System.Text.Json;
 
 namespace Orchestrator;
 
@@ -16,7 +13,6 @@ public class McpOrderProcessor : IOrderProcessor
     private readonly ILogger<McpOrderProcessor> _logger;
 
     public McpOrderProcessor(
-        IChatClient chatClient,
         [FromKeyedServices("grillagent")] IMcpClient grillAgent,
         [FromKeyedServices("fryeragent")] IMcpClient fryerAgent,
         [FromKeyedServices("dessertagent")] IMcpClient dessertAgent,
