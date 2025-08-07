@@ -1,8 +1,13 @@
+using Microsoft.Extensions.AI;
 using Orchestrator;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
+
+// Configure Foundry LLM services
+builder.AddAzureChatCompletionsClient("chat")
+       .AddChatClient();
 
 // Add Blazor services
 builder.Services.AddRazorPages();
@@ -18,6 +23,18 @@ builder.Services.AddSingleton<IOrderProcessor, McpOrderProcessor>();
 builder.Services.AddSingleton<KitchenManager>();
 
 var app = builder.Build();
+
+app.MapPost("/test", async (IChatClient chatClient, TestRequest prompt) =>
+{
+    var messages = new List<ChatMessage>
+    {
+        new(ChatRole.System, "You are a helpful assistant."),
+        new(ChatRole.User, prompt.Prompt)
+    };
+
+    var response = await chatClient.GetResponseAsync(messages);
+    return Results.Ok(new { Response = response.Text });
+});
 
 app.MapDefaultEndpoints();
 
@@ -42,3 +59,5 @@ app.MapFallbackToPage("/_Host");
 app.UseStaticFiles();
 
 app.Run();
+
+public record TestRequest(string Prompt);
