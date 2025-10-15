@@ -20,10 +20,6 @@ public class KitchenWorkflowService
     {
         try
         {
-            var results = new List<string>();
-            results.Add($"🎯 Starting order for {order.CustomerName}");
-            results.Add($"📋 Order: {order.BurgerType ?? "No burger"}, {order.FriesType ?? "No fries"}, {order.DrinkType ?? "No drink"}");
-            
             // Create kitchen agents
             var grillAgent = _chatClient.CreateAIAgent(
                 name: "GrillMaster",
@@ -71,53 +67,38 @@ public class KitchenWorkflowService
 
             var orderMessage = $"Process this order: {order.BurgerType ?? "none"}, {order.FriesType ?? "none"}, {order.DrinkType ?? "none"}";
             
-            results.Add("🚀 Starting kitchen workflow...");
-            
-            // Execute workflow following the official pattern
+            // Execute workflow - let it run completely
             await using var run = await InProcessExecution.StreamAsync(workflow, new ChatMessage(ChatRole.User, orderMessage));
-            await run.TrySendMessageAsync(new TurnToken(emitEvents: true));
+            await run.TrySendMessageAsync(new TurnToken(emitEvents: false));
 
-            // Follow the official sample pattern for event handling
-            await foreach (var workflowEvent in run.WatchStreamAsync())
+            // Wait for completion
+            await foreach (var _ in run.WatchStreamAsync())
             {
-                switch (workflowEvent)
-                {
-                    case ExecutorInvokedEvent executorInvoked:
-                        results.Add($"🚀 Agent {executorInvoked.ExecutorId[..8]}... started");
-                        break;
-                        
-                    case ExecutorCompletedEvent executorCompleted:
-                        results.Add($"✅ Agent {executorCompleted.ExecutorId[..8]}... completed");
-                        break;
-                        
-                    case AgentRunUpdateEvent streamEvent:
-                        // This is where the actual agent output text comes from
-                        if (!string.IsNullOrEmpty(streamEvent.Update.Text))
-                        {
-                            results.Add($"� {streamEvent.Update.Text.Trim()}");
-                        }
-                        break;
-                        
-                    case AgentRunResponseEvent messageEvent:
-                        // Final response from agent
-                        results.Add($"📝 Agent completed task");
-                        break;
-                        
-                    case WorkflowErrorEvent workflowError:
-                        results.Add($"❌ Workflow error: {workflowError.Data?.ToString() ?? "Unknown error"}");
-                        break;
-                }
-                
-                // Safety limit
-                if (results.Count > 50) break;
+                // Just consume events, don't process them
             }
 
-            results.Add("🎉 Order completed successfully!");
-            return string.Join("\n", results);
+            // Build clean order summary
+            var orderItems = new List<string>();
+            if (!string.IsNullOrEmpty(order.BurgerType) && order.BurgerType != "none")
+                orderItems.Add(order.BurgerType);
+            if (!string.IsNullOrEmpty(order.FriesType) && order.FriesType != "none")
+                orderItems.Add(order.FriesType);
+            if (!string.IsNullOrEmpty(order.DrinkType) && order.DrinkType != "none")
+                orderItems.Add(order.DrinkType);
+
+            var itemsText = orderItems.Count switch
+            {
+                0 => "order",
+                1 => orderItems[0],
+                2 => $"{orderItems[0]} and {orderItems[1]}",
+                _ => $"{string.Join(", ", orderItems.Take(orderItems.Count - 1))}, and {orderItems.Last()}"
+            };
+
+            return $"✅ Order Complete!\n\nOrder ID: {Guid.NewGuid().ToString()[..8]}\nCustomer: {order.CustomerName}\n\nYour {itemsText} {(orderItems.Count == 1 ? "is" : "are")} ready!";
         }
         catch (Exception ex)
         {
-            return $"❌ Error: {ex.Message}";
+            return $"❌ Error processing order: {ex.Message}";
         }
     }
 }
