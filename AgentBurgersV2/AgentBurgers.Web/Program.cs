@@ -21,7 +21,7 @@ builder.Services.AddSingleton<IChatClient>(sp =>
         new Uri(config["AZURE_OPENAI_ENDPOINT"] ?? "https://your-endpoint.openai.azure.com"),
         new DefaultAzureCredential());
     
-    var chatClient = azureClient.GetChatClient(config["AZURE_OPENAI_MODEL"] ?? "gpt-4.1");
+    var chatClient = azureClient.GetChatClient(config["AZURE_OPENAI_MODEL"] ?? "gpt-4o-mini");
     return chatClient.AsIChatClient();
 });
 
