@@ -24,10 +24,10 @@ public class KitchenWorkflowService
             results.Add($"🎯 Starting order for {order.CustomerName}");
             results.Add($"📋 Order: {order.BurgerType ?? "No burger"}, {order.FriesType ?? "No fries"}, {order.DrinkType ?? "No drink"}");
             
-            // Create kitchen agents using Agent Framework CreateAIAgent pattern
+            // Create kitchen agents
             var grillAgent = _chatClient.CreateAIAgent(
                 name: "GrillMaster",
-                instructions: "You are the grill station chef. Cook patties, melt cheese, and toast buns using your tools. Be brief and describe what you're doing.",
+                instructions: "You are the grill station chef. Cook patties, melt cheese, and toast buns using your tools.",
                 tools: [
                     AIFunctionFactory.Create(GrillTools.CookPatty),
                     AIFunctionFactory.Create(GrillTools.MeltCheese),
@@ -37,7 +37,7 @@ public class KitchenWorkflowService
 
             var fryerAgent = _chatClient.CreateAIAgent(
                 name: "FryerChef", 
-                instructions: "You handle all frying operations. Fry fries and season them using your tools. Be brief and describe what you're doing.",
+                instructions: "You handle all frying operations.",
                 tools: [
                     AIFunctionFactory.Create(FryerTools.FryFries),
                     AIFunctionFactory.Create(FryerTools.SeasonFries)
@@ -46,7 +46,7 @@ public class KitchenWorkflowService
 
             var dessertAgent = _chatClient.CreateAIAgent(
                 name: "DessertChef",
-                instructions: "You make desserts and drinks. Create shakes and add toppings using your tools. Be brief and describe what you're doing.",
+                instructions: "You make desserts and drinks.",
                 tools: [
                     AIFunctionFactory.Create(DessertTools.MakeShake),
                     AIFunctionFactory.Create(DessertTools.AddWhippedCream)
@@ -55,67 +55,69 @@ public class KitchenWorkflowService
 
             var platingAgent = _chatClient.CreateAIAgent(
                 name: "PlatingChef",
-                instructions: "You assemble and package the final meals using your tools. Be brief and describe what you're doing.",
+                instructions: "You assemble and package meals.",
                 tools: [
                     AIFunctionFactory.Create(PlatingTools.AssembleBurger),
                     AIFunctionFactory.Create(PlatingTools.PackageMeal)
                 ]
             );
 
-            // Build the workflow using Agent Framework WorkflowBuilder
+            // Build workflow
             var workflow = new WorkflowBuilder(grillAgent)
                 .AddEdge(grillAgent, fryerAgent)
                 .AddEdge(fryerAgent, dessertAgent)
                 .AddEdge(dessertAgent, platingAgent)
                 .Build();
 
-            // Create the order message
-            var orderMessage = $"Process this order: Burger: {order.BurgerType ?? "none"}, Fries: {order.FriesType ?? "none"}, Drink: {order.DrinkType ?? "none"}";
+            var orderMessage = $"Process this order: {order.BurgerType ?? "none"}, {order.FriesType ?? "none"}, {order.DrinkType ?? "none"}";
             
             results.Add("🚀 Starting kitchen workflow...");
             
-            // Execute the workflow with streaming
+            // Execute workflow following the official pattern
             await using var run = await InProcessExecution.StreamAsync(workflow, new ChatMessage(ChatRole.User, orderMessage));
-            
-            // Send the turn token to trigger the agents
             await run.TrySendMessageAsync(new TurnToken(emitEvents: true));
 
-            var eventCount = 0;
-            
-            // Watch for workflow events with timeout
-            await foreach (var evt in run.WatchStreamAsync())
+            // Follow the official sample pattern for event handling
+            await foreach (var workflowEvent in run.WatchStreamAsync())
             {
-                eventCount++;
-                
-                switch (evt)
+                switch (workflowEvent)
                 {
-                    case AgentRunUpdateEvent agentUpdate:
-                        results.Add($"� {agentUpdate.ExecutorId} is working...");
+                    case ExecutorInvokedEvent executorInvoked:
+                        results.Add($"🚀 Agent {executorInvoked.ExecutorId[..8]}... started");
                         break;
                         
-                    case ExecutorCompletedEvent executorComplete:
-                        results.Add($"✅ {executorComplete.ExecutorId} completed their task");
+                    case ExecutorCompletedEvent executorCompleted:
+                        results.Add($"✅ Agent {executorCompleted.ExecutorId[..8]}... completed");
                         break;
                         
-                    default:
-                        results.Add($"📡 Workflow event: {evt.GetType().Name}");
+                    case AgentRunUpdateEvent streamEvent:
+                        // This is where the actual agent output text comes from
+                        if (!string.IsNullOrEmpty(streamEvent.Update.Text))
+                        {
+                            results.Add($"� {streamEvent.Update.Text.Trim()}");
+                        }
+                        break;
+                        
+                    case AgentRunResponseEvent messageEvent:
+                        // Final response from agent
+                        results.Add($"📝 Agent completed task");
+                        break;
+                        
+                    case WorkflowErrorEvent workflowError:
+                        results.Add($"❌ Workflow error: {workflowError.Data?.ToString() ?? "Unknown error"}");
                         break;
                 }
                 
-                // Prevent infinite loops
-                if (eventCount > 20)
-                {
-                    results.Add("⚠️ Stopping after 20 events");
-                    break;
-                }
+                // Safety limit
+                if (results.Count > 50) break;
             }
 
-            results.Add("� Order completed successfully!");
+            results.Add("🎉 Order completed successfully!");
             return string.Join("\n", results);
         }
         catch (Exception ex)
         {
-            return $"❌ Error processing order: {ex.Message}";
+            return $"❌ Error: {ex.Message}";
         }
     }
 }
