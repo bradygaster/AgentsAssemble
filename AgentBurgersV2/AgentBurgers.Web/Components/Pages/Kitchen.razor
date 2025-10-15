@@ -1,0 +1,142 @@
+@page "/kitchen"
+@using AgentBurgers.Web.Models
+@using AgentBurgers.Web.Services
+@inject KitchenWorkflowService KitchenService
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<PageTitle>AgentBurgers Kitchen</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3>New Order</h3>
+                </div>
+                <div class="card-body">
+                    <EditForm Model="@newOrder" OnValidSubmit="@SubmitOrder">
+                        <div class="mb-3">
+                            <label class="form-label">Customer Name:</label>
+                            <InputText @bind-Value="newOrder.CustomerName" class="form-control" />
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Burger:</label>
+                            <InputSelect @bind-Value="newOrder.BurgerType" class="form-control">
+                                <option value="">No Burger</option>
+                                <option value="Cheeseburger">Cheeseburger</option>
+                                <option value="Bacon Burger">Bacon Burger</option>
+                                <option value="Veggie Burger">Veggie Burger</option>
+                            </InputSelect>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Fries:</label>
+                            <InputSelect @bind-Value="newOrder.FriesType" class="form-control">
+                                <option value="">No Fries</option>
+                                <option value="regular">Regular Fries</option>
+                                <option value="waffle">Waffle Fries</option>
+                                <option value="sweet-potato">Sweet Potato Fries</option>
+                            </InputSelect>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Drink:</label>
+                            <InputSelect @bind-Value="newOrder.DrinkType" class="form-control">
+                                <option value="">No Drink</option>
+                                <option value="vanilla">Vanilla Shake</option>
+                                <option value="chocolate">Chocolate Shake</option>
+                                <option value="strawberry">Strawberry Shake</option>
+                            </InputSelect>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary" disabled="@isProcessing">
+                            @if (isProcessing) 
+                            { 
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                                <span>Processing Order...</span> 
+                            } 
+                            else 
+                            { 
+                                <span>Submit Order</span> 
+                            }
+                        </button>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            @if (lastResult != null)
+            {
+                <div class="card">
+                    <div class="card-header">
+                        <h4>Order Complete!</h4>
+                    </div>
+                    <div class="card-body">
+                        <p><strong>Order ID:</strong> @lastResult.OrderId</p>
+                        <p><strong>Customer:</strong> @lastCustomerName</p>
+                        <div class="alert alert-success">
+                            @lastResult.Result
+                        </div>
+                        <small class="text-muted">Completed at @lastResult.Timestamp.ToString("HH:mm:ss")</small>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private OrderFormModel newOrder = new();
+    private bool isProcessing = false;
+    private OrderResult? lastResult = null;
+    private string lastCustomerName = "";
+
+    private async Task SubmitOrder()
+    {
+        if (string.IsNullOrWhiteSpace(newOrder.CustomerName))
+            return;
+
+        isProcessing = true;
+        StateHasChanged();
+
+        try
+        {
+            var order = new CustomerOrder(
+                Guid.NewGuid().ToString()[..8],
+                newOrder.CustomerName,
+                newOrder.BurgerType,
+                newOrder.FriesType,
+                newOrder.DrinkType
+            );
+
+            lastCustomerName = newOrder.CustomerName;
+            var result = await KitchenService.ProcessOrderAsync(order);
+            
+            lastResult = new OrderResult
+            {
+                OrderId = order.OrderId,
+                Result = result,
+                IsComplete = true,
+                Timestamp = DateTime.Now
+            };
+            
+            newOrder = new OrderFormModel();
+        }
+        finally
+        {
+            isProcessing = false;
+            StateHasChanged();
+        }
+    }
+
+    public class OrderFormModel
+    {
+        public string CustomerName { get; set; } = "";
+        public string? BurgerType { get; set; } = "";
+        public string? FriesType { get; set; } = "";
+        public string? DrinkType { get; set; } = "";
+    }
+}
