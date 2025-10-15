@@ -1,89 +1,159 @@
-using System.ComponentModel;
 using Microsoft.Extensions.AI;
 
 namespace AgentBurgers.Web.Tools;
 
 public static class GrillTools
 {
-    [Description("Cook a burger patty to specified doneness")]
-    public static async Task<string> CookPatty(
-        [Description("Type of patty: beef, turkey, veggie")] string pattyType,
-        [Description("Doneness: rare, medium-rare, medium, well-done")] string doneness)
+    public static AITool CreateCookPattyTool(ILogger logger)
     {
-        await Task.Delay(Random.Shared.Next(2000, 4000));
-        return $"Cooked {pattyType} patty to {doneness} perfection";
+        async Task<string> CookPatty(string pattyType, string doneness)
+        {
+            logger.LogInformation("🍔 GRILL: Starting to cook {PattyType} patty to {Doneness}", pattyType, doneness);
+            await Task.Delay(Random.Shared.Next(500, 1000));
+            var result = $"Cooked {pattyType} patty to {doneness} perfection";
+            logger.LogInformation("🍔 GRILL: {Result}", result);
+            return result;
+        }
+
+        return AIFunctionFactory.Create(CookPatty,
+            "CookPatty",
+            "Cook a burger patty to specified doneness. Parameters: pattyType (beef, turkey, veggie), doneness (rare, medium-rare, medium, well-done)");
     }
 
-    [Description("Melt cheese on a cooked patty")]
-    public static async Task<string> MeltCheese(
-        [Description("Cheese type: cheddar, swiss, american")] string cheeseType)
+    public static AITool CreateMeltCheeseTool(ILogger logger)
     {
-        await Task.Delay(1500);
-        return $"Melted {cheeseType} cheese perfectly";
+        async Task<string> MeltCheese(string cheeseType)
+        {
+            logger.LogInformation("🍔 GRILL: Melting {CheeseType} cheese", cheeseType);
+            await Task.Delay(500);
+            var result = $"Melted {cheeseType} cheese perfectly";
+            logger.LogInformation("🍔 GRILL: {Result}", result);
+            return result;
+        }
+
+        return AIFunctionFactory.Create(MeltCheese,
+            "MeltCheese",
+            "Melt cheese on a cooked patty. Parameters: cheeseType (cheddar, swiss, american)");
     }
 
-    [Description("Toast burger buns")]
-    public static async Task<string> ToastBun(
-        [Description("Toast level: light, medium, dark")] string toastLevel)
+    public static AITool CreateToastBunTool(ILogger logger)
     {
-        await Task.Delay(1000);
-        return $"Toasted buns to {toastLevel} perfection";
+        async Task<string> ToastBun(string toastLevel)
+        {
+            logger.LogInformation("🍔 GRILL: Toasting buns to {ToastLevel}", toastLevel);
+            await Task.Delay(500);
+            var result = $"Toasted buns to {toastLevel} perfection";
+            logger.LogInformation("🍔 GRILL: {Result}", result);
+            return result;
+        }
+
+        return AIFunctionFactory.Create(ToastBun,
+            "ToastBun",
+            "Toast burger buns. Parameters: toastLevel (light, medium, dark)");
     }
 }
 
 public static class FryerTools
 {
-    [Description("Fry french fries")]
-    public static async Task<string> FryFries(
-        [Description("Fries type: regular, waffle, sweet-potato")] string friesType,
-        [Description("Size: small, medium, large")] string size)
+    public static AITool CreateFryFriesTool(ILogger logger)
     {
-        await Task.Delay(Random.Shared.Next(3000, 5000));
-        return $"Fried {size} {friesType} fries until golden and crispy";
+        async Task<string> FryFries(string friesType, string size)
+        {
+            logger.LogInformation("🍟 FRYER: Starting to fry {Size} {FriesType} fries", size, friesType);
+            await Task.Delay(Random.Shared.Next(500, 1000));
+            var result = $"Fried {size} {friesType} fries until golden and crispy";
+            logger.LogInformation("🍟 FRYER: {Result}", result);
+            return result;
+        }
+
+        return AIFunctionFactory.Create(FryFries,
+            "FryFries",
+            "Fry french fries. Parameters: friesType (regular, waffle, sweet-potato), size (small, medium, large)");
     }
 
-    [Description("Season fries with salt and spices")]
-    public static async Task<string> SeasonFries()
+    public static AITool CreateSeasonFriesTool(ILogger logger)
     {
-        await Task.Delay(500);
-        return "Seasoned fries with perfect salt and spice blend";
+        async Task<string> SeasonFries()
+        {
+            logger.LogInformation("🍟 FRYER: Seasoning fries");
+            await Task.Delay(500);
+            var result = "Seasoned fries with perfect salt and spice blend";
+            logger.LogInformation("🍟 FRYER: {Result}", result);
+            return result;
+        }
+
+        return AIFunctionFactory.Create(SeasonFries,
+            "SeasonFries",
+            "Season fries with salt and spices");
     }
 }
 
 public static class DessertTools
 {
-    [Description("Make a milkshake")]
-    public static async Task<string> MakeShake(
-        [Description("Flavor: vanilla, chocolate, strawberry")] string flavor,
-        [Description("Size: small, medium, large")] string size)
+    public static AITool CreateMakeShakeTool(ILogger logger)
     {
-        await Task.Delay(Random.Shared.Next(2000, 3000));
-        return $"Blended thick and creamy {size} {flavor} milkshake";
+        async Task<string> MakeShake(string flavor, string size)
+        {
+            logger.LogInformation("🥤 DESSERT: Making {Size} {Flavor} milkshake", size, flavor);
+            await Task.Delay(Random.Shared.Next(2000, 3000));
+            var result = $"Blended thick and creamy {size} {flavor} milkshake";
+            logger.LogInformation("🥤 DESSERT: {Result}", result);
+            return result;
+        }
+
+        return AIFunctionFactory.Create(MakeShake,
+            "MakeShake",
+            "Make a milkshake. Parameters: flavor (vanilla, chocolate, strawberry), size (small, medium, large)");
     }
 
-    [Description("Add whipped cream to desserts")]
-    public static async Task<string> AddWhippedCream()
+    public static AITool CreateAddWhippedCreamTool(ILogger logger)
     {
-        await Task.Delay(300);
-        return "Added fresh whipped cream topping";
+        async Task<string> AddWhippedCream()
+        {
+            logger.LogInformation("🥤 DESSERT: Adding whipped cream");
+            await Task.Delay(300);
+            var result = "Added fresh whipped cream topping";
+            logger.LogInformation("🥤 DESSERT: {Result}", result);
+            return result;
+        }
+
+        return AIFunctionFactory.Create(AddWhippedCream,
+            "AddWhippedCream",
+            "Add whipped cream to desserts");
     }
 }
 
 public static class PlatingTools
 {
-    [Description("Assemble burger with all components")]
-    public static async Task<string> AssembleBurger(
-        [Description("Description of burger components")] string components)
+    public static AITool CreateAssembleBurgerTool(ILogger logger)
     {
-        await Task.Delay(1500);
-        return $"Assembled burger: {components}";
+        async Task<string> AssembleBurger(string components)
+        {
+            logger.LogInformation("📦 PLATING: Assembling burger with: {Components}", components);
+            await Task.Delay(500);
+            var result = $"Assembled burger: {components}";
+            logger.LogInformation("📦 PLATING: {Result}", result);
+            return result;
+        }
+
+        return AIFunctionFactory.Create(AssembleBurger,
+            "AssembleBurger",
+            "Assemble burger with all components. Parameters: components (description of burger components)");
     }
 
-    [Description("Package meal for serving")]
-    public static async Task<string> PackageMeal(
-        [Description("Complete meal description")] string mealDescription)
+    public static AITool CreatePackageMealTool(ILogger logger)
     {
-        await Task.Delay(1000);
-        return $"Packaged complete meal: {mealDescription}";
+        async Task<string> PackageMeal(string mealDescription)
+        {
+            logger.LogInformation("📦 PLATING: Packaging meal: {MealDescription}", mealDescription);
+            await Task.Delay(250);
+            var result = $"Packaged complete meal: {mealDescription}";
+            logger.LogInformation("📦 PLATING: {Result}", result);
+            return result;
+        }
+
+        return AIFunctionFactory.Create(PackageMeal,
+            "PackageMeal",
+            "Package meal for serving. Parameters: mealDescription (complete meal description)");
     }
 }

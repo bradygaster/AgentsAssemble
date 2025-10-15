@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Solution>
+  <Project Path="AgentBurgers.AppHost\AgentBurgers.AppHost.csproj" />
+  <Project Path="AgentBurgers.ServiceDefaults\AgentBurgers.ServiceDefaults.csproj" />
+  <Project Path="AgentBurgers.Web\AgentBurgers.Web.csproj" />
+</Solution>
